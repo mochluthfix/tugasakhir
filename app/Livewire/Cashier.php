@@ -65,12 +65,6 @@ class Cashier extends Component implements HasForms
                         ->numeric()
                         ->default(0)
                         ->label('Total Price'),
-                    Forms\Components\Select::make('payment_method_id')
-                        ->label('Payment Method')
-                        ->options(PaymentMethod::all()->pluck('name', 'id'))
-                        ->required()
-                        ->searchable()
-                        ->preload()
                 ])
         ]);
     }

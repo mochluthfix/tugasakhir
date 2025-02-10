@@ -10,33 +10,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Order extends Model
 {
     protected $fillable = [
-        'name',
-        'email',
+        'user_id',
+        'nomeja',
         'phone',
         'total_price',
+        'payment_status',
+        'status',
         'note',
-        'payment_method_id',
-        'paid_amount',
-        'change_amount'
     ];
 
     protected function casts(): array
     {
         return [
             'total_price' => 'integer',
-            'payment_method_id' => 'integer',
-            'paid_amount' => 'integer',
-            'change_amount' => 'integer'
+            'nomeja' => 'integer',
         ];
     }
 
+    public function user(){
+        return $this->belongsTo(User::class);
+    }
     public function orderDetails(): HasMany
     {
         return $this->hasMany(OrderDetail::class);
     }
 
-    public function paymentMethod(): BelongsTo
-    {
-        return $this->belongsTo(PaymentMethod::class);
-    }
+
 }

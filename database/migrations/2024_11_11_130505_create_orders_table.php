@@ -13,15 +13,13 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->nullable();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('nomeja')->nullable();
             $table->string('phone', 20)->nullable();
             $table->unsignedBigInteger('total_price')->default(0);
             $table->text('note')->nullable();
-            $table->foreignId('payment_method_id')->nullable()->constrained()->nullOnDelete();
-            $table->unsignedBigInteger('paid_amount')->default(0);
-            $table->unsignedBigInteger('change_amount')->default(0);
-            $table->string('snap_token')->nullable();
+            $table->unsignedBigInteger('payment_status')->default(0);
+            $table->enum('status', ['new', 'processing', 'canceled', ''])->default('new');
             $table->timestamps();
         });
     }

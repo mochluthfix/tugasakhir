@@ -1,110 +1,102 @@
-<?php   
+<?php  
+namespace App\Livewire;    
+    
+use App\Models\Order;    
+use Livewire\Component;    
+use App\Models\OrderDetail;    
+use App\Helpers\CartManagement;    
+use Illuminate\Support\Facades\Auth;    
+    
+class CheckoutPage extends Component        
+{         
+    public $notes;        
+    public $phone;        
+    public $nomeja; // Properti untuk nama meja    
+    public $isSubmitting = false; // Untuk mencegah pengiriman ganda    
+    
+    public function mount()
+    {
+        $cartItems = CartManagement::getCartItemsFromCookie();
+        if (count($cartItems) == 0) {
+            return redirect()->route('products');
+        }
+    }
   
-namespace App\Livewire;  
-  
-use Midtrans\Snap;  
-use Midtrans\Config;  
-use App\Models\Order;  
-use Livewire\Component;  
-use App\Models\PaymentMethod;  
-use Livewire\Attributes\Title;  
-use App\Helpers\CartManagement;  
-  
-#[Title('Checkout')]  
-class CheckoutPage extends Component    
-{    
-    public $nama;    
-    public $notes;    
-    public $phone;    
-    public $payment_method;    
-    public $snapToken;  
-  
-    public function placeOrder()        
-{        
-    // Validate input        
-    $this->validate([        
-        'nama' => 'required|string|max:255',        
-        'phone' => 'nullable|string|max:15',        
-        'notes' => 'nullable|string|max:255',        
-        'payment_method' => 'required|string'        
-    ]);        
-  
-    // Get cart items from cookie        
-    $cart_items = CartManagement::getCartItemsFromCookie();        
-    $line_items = [];        
-    foreach ($cart_items as $item) {        
-        $line_items[] = [        
-            'price' => $item['unit_amount'],        
-            'quantity' => $item['quantity'],        
-            'name' => $item['name']        
-        ];        
-    }      
-          
-    $order = new Order();  
-    $order->name = $this->nama;
-    $order->total_price = CartManagement::calculateGrandTotal($cart_items);        
-    $order->note = $this->notes;  
-  
-    // Set Midtrans configuration      
-    Config::$serverKey = config('midtrans.serverKey');  
-    Config::$clientKey = config('midtrans.clientKey');      
-    Config::$isProduction = config('services.midtrans.isProduction');      
-    Config::$isSanitized = config('services.midtrans.isSanitized');      
-    Config::$is3ds = config('services.midtrans.is3ds');      
-  
-    if ($this->payment_method === 'qris') {  
-        // Create transaction for QRIS  
-        $transaction_details = [        
-            'order_id' => uniqid(), // Generate unique order ID        
-            'gross_amount' => $order->total_price, // Total amount        
-        ];        
-  
-        $item_details = [];        
-        foreach ($line_items as $item) {        
-            $item_details[] = [        
-                'id' => $item['name'],        
-                'price' => $item['price'],        
-                'quantity' => $item['quantity'],        
-                'name' => $item['name'],        
-            ];        
-        }        
-  
-        $transaction_data = [        
-            'transaction_details' => $transaction_details,        
-            'item_details' => $item_details,        
-            'customer_details' => [        
-                'first_name' => $this->nama,        
-                'phone' => $this->phone,        
-                'notes' => $this->notes,        
-            ],        
-        ];             
-  
-        $snapToken = \MidTrans\Snap::getSnapToken($transaction_data);      
-          
-        $order->snap_token = $snapToken;  
-        $this->dispatch('openMidtrans', ['snapToken' => $this->snapToken]);  
-        $order->save();  
-
-    } else {  
-        // Save order directly for "Bayar di Kasir"  
-        $order->save();  
-        return redirect()->route('success', $order->id); // Redirect to success page  
-        CartManagement::clearCartItems();
+    public function placeOrder()          
+    {          
+        // Validasi input          
+        $this->validate([          
+            'nomeja' => 'required|string|max:2', // Validasi untuk nomeja    
+            'phone' => 'required|string|max:20',          
+            'notes' => 'nullable|string|max:255',    
+        ]);          
+            
+        // Ambil item keranjang          
+        $cartItems = CartManagement::getCartItemsFromCookie();          
+        $grandTotal = CartManagement::calculateGrandTotal($cartItems);          
+            
+        // Cek apakah sudah ada pesanan dengan detail yang sama          
+        $existingOrder = Order::where('user_id', Auth::id())          
+            ->where('total_price', $grandTotal)          
+            ->orderBy('created_at', 'desc') // Ambil pesanan terakhir      
+            ->first();          
+            
+        // Cek apakah pesanan terakhir dilakukan kurang dari 1 menit yang lalu      
+        if ($existingOrder && $existingOrder->created_at > now()->subMinute()) {          
+            session()->flash('error', 'Anda sudah memesan dengan detail yang sama. Silakan coba lagi setelah 1 menit.');          
+            return;          
+        }          
+            
+        // Mencegah pengiriman ganda          
+        if ($this->isSubmitting) {          
+            return;          
+        }          
+            
+        $this->isSubmitting = true;          
+            
+        try {
+            // Buat pesanan baru          
+            $order = new Order();          
+            $order->user_id = Auth::id(); // Menyimpan user_id    
+            $order->nomeja = $this->nomeja; // Menyimpan nama meja    
+            $order->phone = $this->phone; // Menyimpan nomor telepon    
+            $order->total_price = $grandTotal;          
+            $order->note = $this->notes;         
+            $order->payment_status = 0; // Status pembayaran default    
+            $order->status = 'new'; // Status pesanan default    
+            $order->save();          
+                
+            // Simpan detail pesanan        
+            foreach ($cartItems as $item) {          
+                $orderDetail = new OrderDetail();          
+                $orderDetail->order_id = $order->id;          
+                $orderDetail->product_id = $item['product_id'];          
+                $orderDetail->quantity = $item['quantity'];          
+                $orderDetail->price = $item['unit_amount'];          
+                $orderDetail->save();          
+            }          
+                
+            CartManagement::clearCartItems();          
+            $this->isSubmitting = false;          
+                
+            session()->flash('success', 'Pesanan berhasil dibuat!');
+            return redirect()->route('success', $order->id);          
+        } catch (\Exception $e) {
+            $this->isSubmitting = false;
+            session()->flash('error', 'Terjadi kesalahan saat menyimpan pesanan. Silakan coba lagi.');
+            return;
+        }
     }  
-}  
-   
-  
-    public function render()    
-    {    
-        // Get cart items and total price    
-        $cart_items = CartManagement::getCartItemsFromCookie();    
-        $grand_total = !empty($cart_items) ? CartManagement::calculateGrandTotal($cart_items) : 0;  
-          
-  
-        return view('livewire.checkout-page', [    
-            'cart_items' => $cart_items,    
-            'grand_total' => $grand_total, 
-            'snapToken' => $this->snapToken,   
-        ]);    
-    }    
-}  
+
+    public function render()        
+    {        
+        // Get cart items and total price        
+        $cartItems = CartManagement::getCartItemsFromCookie();        
+        $grandTotal = !empty($cartItems) ? CartManagement::calculateGrandTotal($cartItems) : 0;      
+    
+        return view('livewire.checkout-page', [        
+            'cart_items' => $cartItems,        
+            'grand_total' => $grandTotal,        
+        ]);        
+    }        
+}

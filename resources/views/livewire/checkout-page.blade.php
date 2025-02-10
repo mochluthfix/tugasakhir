@@ -14,12 +14,12 @@
 						</h2>
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label class="block text-gray-700 dark:text-white mb-1" for="first_name">
-									Nama
+								<label class="block text-gray-700 dark:text-white mb-1" for="nomeja">
+									Nomor Meja
 								</label>
-								<input wire:model='nama' class="w-full rounded-lg border py-2 px-3 dark:bg-gray-700 dark:text-white dark:border-none @error('nama')border-red-400 @enderror " id="first_name" type="text">
+								<input wire:model='nomeja' class="w-full rounded-lg border py-2 px-3 dark:bg-gray-700 dark:text-white dark:border-none @error('nomeja')border-red-400 @enderror " id="nomeja" type="text">
 								</input>
-								@error('nama')
+								@error('nomeja')
 									<div class="text-red-400 text-sm">{{$message}}</div>
 								@enderror
 							</div>
@@ -64,44 +64,7 @@
 							
 						</div>
 					</div>
-					<div class="text-lg font-semibold mb-4">
-						Select Payment Method
-					</div>
-					<ul class="grid w-full gap-6 md:grid-cols-2">
-						<li>
-							<input wire:model='payment_method' class="hidden peer" id="hosting-small" required="" type="radio" value="cod" />
-							<label class="inline-flex items-center justify-between w-full p-5 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 dark:peer-checked:text-blue-500 peer-checked:border-blue-600 peer-checked:text-blue-600 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700" for="hosting-small">
-								<div class="block">
-									<div class="w-full text-lg font-semibold">
-										Bayar di Kasir
-									</div>
-								</div>
-								<svg aria-hidden="true" class="w-5 h-5 ms-3 rtl:rotate-180" fill="none" viewbox="0 0 14 10" xmlns="http://www.w3.org/2000/svg">
-									<path d="M1 5h12m0 0L9 1m4 4L9 9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-									</path>
-								</svg>
-							</label>
-						</li>
-						<li>
-							<input wire:model='payment_method' class="hidden peer" id="hosting-big" type="radio" value="qris">
-							<label class="inline-flex items-center justify-between w-full p-5 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 dark:peer-checked:text-blue-500 peer-checked:border-blue-600 peer-checked:text-blue-600 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700" for="hosting-big">
-								<div class="block">
-									<div class="w-full text-lg font-semibold">
-										QRIS/VA
-									</div>
-								</div>
-								<svg aria-hidden="true" class="w-5 h-5 ms-3 rtl:rotate-180" fill="none" viewbox="0 0 14 10" xmlns="http://www.w3.org/2000/svg">
-									<path d="M1 5h12m0 0L9 1m4 4L9 9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-									</path>
-								</svg>
-							</label>
-							</input>
-						</li>
-					</ul>
-
-					@error('payment_method')
-									<div class="text-red-400 text-sm">{{$message}}</div>
-								@enderror
+					
 				</div>
 				<!-- End Card -->
 			</div>
@@ -138,9 +101,12 @@
 					</div>
 					</hr>
 				</div>
-				<button wire:click="placeOrder" class="bg-green-500 mt-4 w-full p-3 rounded-lg text-lg text-white hover:bg-green-600">  
-					Place Order  
-				</button>  
+				   <button wire:click="placeOrder"   
+           class="bg-green-500 mt-4 w-full p-3 rounded-lg text-lg text-white hover:bg-green-600"   
+           wire:loading.attr="disabled">  
+       Place Order  
+   </button>  
+
 				<div class="bg-white mt-4 rounded-xl shadow p-4 sm:p-7 dark:bg-slate-900">
 					<div class="text-xl font-bold underline text-gray-700 dark:text-white mb-2">
 						BASKET SUMMARY
@@ -175,25 +141,3 @@
 		</div>
 	</form>
 </div>
-
-<script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.clientKey') }}"></script>      
-<script>      
-    document.addEventListener('livewire:load', function () {    
-        Livewire.on('openMidtrans', (data) => {    
-            snap.pay('{{$snapToken}}', {      
-                onSuccess: function(result) {      
-                    console.log('payment success', result);
-                    // Handle success (e.g., redirect to success page)    
-                },      
-                onPending: function(result) {      
-                    console.log('waiting for payment', result);      
-                    // Handle pending (e.g., notify user)    
-                },      
-                onError: function(result) {      
-                    console.log('payment failed', result);      
-                    // Handle error (e.g., notify user)    
-                }      
-            });      
-        });    
-    });    
-</script>  
